@@ -18,6 +18,7 @@ def handle_message(msg):
     if msg["id"] != id:
         print('Mensagem recebida:', msg["message"])
 
+
 if __name__ == '__main__':
     server_url = 'http://192.168.219.22:5000'
     sio.connect(server_url)
