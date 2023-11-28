@@ -19,7 +19,7 @@ def handle_message(msg):
         print('Mensagem recebida:', msg["message"])
 
 if __name__ == '__main__':
-    server_url = 'http://192.168.219.22:5000'  # Atualize com o URL do seu servidor
+    server_url = 'http://192.168.219.22:5000'
     sio.connect(server_url)
 
     while True:
