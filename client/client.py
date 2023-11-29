@@ -20,7 +20,7 @@ def handle_message(msg):
 
 
 if __name__ == '__main__':
-    server_url = 'http://192.168.219.22:5000'
+    server_url = 'http://127.0.0.1:5000'
     sio.connect(server_url)
 
     while True:
