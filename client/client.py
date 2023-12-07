@@ -1,6 +1,6 @@
 import socketio
 import random
-import time
+from encrypt import encrypt_message, decrypt_message
 
 sio = socketio.Client()
 id = random.randint(0, 100)
@@ -16,8 +16,9 @@ def disconnect():
 @sio.on(f'message')
 def handle_message(msg):
     if msg["id"] != id:
-        print('Mensagem recebida:', msg["message"])
-
+        print("Mensagem criptografada:", msg["encrypted_message"])
+        decrypted_message = decrypt_message(msg["encrypted_message"], msg["iv"])
+        print('Mensagem descriptografada:', decrypted_message)
 
 if __name__ == '__main__':
     server_url = 'http://127.0.0.1:5000'
@@ -27,6 +28,8 @@ if __name__ == '__main__':
         message = input('Digite uma mensagem (ou "exit" para sair): ')
         if message.lower() == 'exit':
             break
-        sio.emit('message', {'id': id, 'message': message})
+        
+        encrypted_message, iv = encrypt_message(message)
+        sio.emit('message', {'id': id, 'encrypted_message': encrypted_message, 'iv': iv})
 
     sio.disconnect()
