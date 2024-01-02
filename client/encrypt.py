@@ -1,54 +1,54 @@
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-import os
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from base64 import b64encode, b64decode
 
-def pad(message):
-    padder = padding.PKCS7(64).padder()
-    padded_data = padder.update(message.encode()) + padder.finalize()
-    return padded_data
+# Gerando uma chave simétrica para 3DES
+def generate_3des_key():
+    password = b"senha_segura"  # Substitua pela sua senha
+    salt = b"salte_secreto"  # Substitua pelo seu sal
 
-def unpad(padded_data):
-    unpadder = padding.PKCS7(64).unpadder()
-    data = unpadder.update(padded_data) + unpadder.finalize()
-    return data.decode()
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=24,  # Tamanho da chave para 3DES
+        salt=salt,
+        iterations=100000,
+        backend=default_backend()
+    )
 
-def encrypt_3des(message, key):
-    if len(key) < 24:
-        key = key.ljust(24, b'0')
-    elif len(key) > 24:
-        key = key[:24]
+    key = kdf.derive(password)
+    return key
 
-    iv = os.urandom(8)
-
-    cipher = Cipher(algorithms.TripleDES(key), modes.CFB(iv), backend=default_backend())
+# Função para criptografar uma mensagem
+def encrypt_message(message, key):
+    cipher = Cipher(algorithms.TripleDES(key), modes.ECB(), backend=default_backend())
     encryptor = cipher.encryptor()
-
-    padded_message = pad(message)
+    message_bytes = message.encode('utf-8')
+    padded_message = message_bytes + b' ' * (8 - len(message_bytes) % 8)  # Preenche a mensagem para ser múltiplo de 8 bytes
     ciphertext = encryptor.update(padded_message) + encryptor.finalize()
+    return b64encode(ciphertext).decode('utf-8')
 
-    return ciphertext, iv
-
-def decrypt_3des(ciphertext, key, iv):
-    if len(key) < 24:
-        key = key.ljust(24, b'0')
-    elif len(key) > 24:
-        key = key[:24]
-
-    cipher = Cipher(algorithms.TripleDES(key), modes.CFB(iv), backend=default_backend())
+# Função para descriptografar uma mensagem
+def decrypt_message(ciphertext, key):
+    cipher = Cipher(algorithms.TripleDES(key), modes.ECB(), backend=default_backend())
     decryptor = cipher.decryptor()
+    ciphertext_bytes = b64decode(ciphertext)
+    decrypted_message = decryptor.update(ciphertext_bytes) + decryptor.finalize()
+    return decrypted_message.rstrip(b' ').decode('utf-8')
 
-    decrypted_message = decryptor.update(ciphertext) + decryptor.finalize()
-    unpadded_message = unpad(decrypted_message)
+# Exemplo de uso
+if __name__ == "__main__":
+    # Gerar chave
+    symmetric_key = generate_3des_key()
 
-    return unpadded_message
+    # Mensagem para criptografar
+    original_message = "Olá, mundo!"
 
-def encrypt_message(message):
-    chave_3des = b'SuaChaveSecreta' 
-    mensagem_criptografada, iv = encrypt_3des(message, chave_3des)
-    return mensagem_criptografada, iv
+    # Criptografar a mensagem
+    encrypted_message = encrypt_message(original_message, symmetric_key)
+    print(f'Mensagem criptografada: {encrypted_message}')
 
-def decrypt_message(ciphertext, iv):
-    chave_3des = b'SuaChaveSecreta'
-    mensagem_descriptografada = decrypt_3des(ciphertext, chave_3des, iv)
-    return mensagem_descriptografada
+    # Descriptografar a mensagem
+    decrypted_message = decrypt_message(encrypted_message, symmetric_key)
+    print(f'Mensagem descriptografada: {decrypted_message}')
