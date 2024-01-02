@@ -11,3 +11,11 @@ class User(db.Model):
     
     def __repr__(self):
         return f"User('{self.username}', '{self.email}')"
+
+
+class Chat(db.Model):
+    __tablename__ = "chat"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_1_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_2_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

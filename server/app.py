@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 
 from models import db, User
-from routers import status, auth, user
+from routers import status, auth, user, chat
 
 app = Flask(__name__)
 
@@ -18,5 +18,6 @@ db.init_app(app)
 app.register_blueprint(status.bp)
 app.register_blueprint(auth.bp)
 app.register_blueprint(user.bp)
+app.register_blueprint(chat.bp)
 
 socketio = SocketIO(app)
