@@ -1,7 +1,7 @@
 import json
 import requests
 
-def start_chat(server_url, headers, current_user_id):
+def choose_chat(server_url, headers, current_user_id):
     response = requests.get(f"{server_url}/user", headers=headers)
     users = json.loads(response.content.decode("utf-8"))
 
