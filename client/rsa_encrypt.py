@@ -1,19 +1,36 @@
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization, hashes
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
 
-def generate_key_pair():
+def generate_rsa_keys():
     private_key = rsa.generate_private_key(
         public_exponent=65537,
-        key_size=2048
+        key_size=2048,
+        backend=default_backend()
     )
     public_key = private_key.public_key()
-    return private_key, public_key
+
+    private_key_str = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption()
+    ).decode('utf-8')
+
+    public_key_str = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode('utf-8')
+
+    return private_key_str, public_key_str
 
 
-def encrypt_string(string_to_encrypt, public_key):
-    message = string_to_encrypt.encode('utf-8')
+def rsa_encrypt(string_to_encrypt, public_key_str):
+    public_key = serialization.load_pem_public_key(
+        public_key_str.encode('utf-8'),
+        backend=default_backend()
+    )
+    message = string_to_encrypt if isinstance(string_to_encrypt, (bytes, bytearray)) else string_to_encrypt.encode('utf-8')
     encrypted = public_key.encrypt(
         message,
         padding.OAEP(
@@ -25,7 +42,12 @@ def encrypt_string(string_to_encrypt, public_key):
     return encrypted
 
 
-def decrypt_string(encrypted_string, private_key):
+def rsa_decrypt(encrypted_string, private_key_str):
+    private_key = serialization.load_pem_private_key(
+        private_key_str.encode('utf-8'),
+        password=None,
+        backend=default_backend()
+    )
     decrypted = private_key.decrypt(
         encrypted_string,
         padding.OAEP(
@@ -34,15 +56,17 @@ def decrypt_string(encrypted_string, private_key):
             label=None
         )
     )
-    return decrypted.decode('utf-8')
+    return decrypted if isinstance(decrypted, (bytes, bytearray)) else decrypted.decode('utf-8')
 
 
 if __name__ == "__main__":
-    private_key, public_key = generate_key_pair()
+    private_key_str, public_key_str = generate_rsa_keys()
     text_to_encrypt = "SEBA"
 
-    encrypted_text = encrypt_string(text_to_encrypt, public_key)
+    print(private_key_str, private_key_str)
+
+    encrypted_text = rsa_encrypt(text_to_encrypt, public_key_str)
     print("Texto criptografado:", encrypted_text)
 
-    decrypted_text = decrypt_string(encrypted_text, private_key)
+    decrypted_text = rsa_decrypt(encrypted_text, private_key_str)
     print("Texto descriptografado:", decrypted_text)

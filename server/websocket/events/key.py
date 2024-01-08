@@ -11,9 +11,8 @@ def get_key(data):
     def set_key(value):
         nonlocal key
         key = value
-        print("Set_key: ", key)
 
-    socketio.emit("send_key_to_server", include_self=False, callback=set_key)
+    socketio.emit("send_key_to_server", { "public_key": data["public_key"] }, include_self=False, callback=set_key)
 
     timeout = time.time() + timeout
     while not key and time.time() <= timeout:

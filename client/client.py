@@ -3,6 +3,7 @@ import requests
 import json
 
 from encrypt import encrypt_message, decrypt_message, generate_3des_key
+from rsa_encrypt import rsa_encrypt, rsa_decrypt, generate_rsa_keys
 
 from login import login
 from chat import choose_chat
@@ -23,22 +24,27 @@ def handle_chat_message(data):
     print(data)
 
 @sio.on("send_key_to_server")
-def sent_key_to_server():
+def sent_key_to_server(data):
     global symmetric_key
-    return symmetric_key
+    encrypted_3des_key = rsa_encrypt(symmetric_key, data["public_key"])
+    return encrypted_3des_key
 
 @sio.on("message")
 def handle_message(data):
-    def set_key(key):
-        print(f"{data['user']}: ", decrypt_message(data["encrypted_message"], key))
+    global public_key, private_key
 
-    sio.emit("get_key", {"sid": data["sid"]}, callback=set_key)
+    def set_key(key):
+        decrypted_3des_key = rsa_decrypt(key, private_key)
+        print(f"{data['user']}: ", decrypt_message(data["encrypted_message"], decrypted_3des_key))
+
+    sio.emit("get_key", {"sid": data["sid"], "public_key": public_key}, callback=set_key)
 
 
 if __name__ == "__main__":
     server_url = "http://127.0.0.1:5000"
     headers = {"Content-Type": "application/json"}
     symmetric_key = generate_3des_key()
+    private_key, public_key = generate_rsa_keys()
 
     sio.connect(server_url)
 
