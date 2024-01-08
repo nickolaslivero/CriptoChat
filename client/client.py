@@ -9,7 +9,6 @@ from chat import choose_chat
 
 
 sio = socketio.Client()
-user = None
 
 @sio.event
 def connect():
@@ -23,10 +22,17 @@ def disconnect():
 def handle_chat_message(data):
     print(data)
 
+@sio.on("send_key_to_server")
+def sent_key_to_server():
+    global symmetric_key
+    return symmetric_key
+
 @sio.on("message")
-def handle_message(msg):
-    decrypted_message = decrypt_message(msg["encrypted_message"], msg["key"])
-    print(f"{msg['user']}: ", decrypted_message)
+def handle_message(data):
+    def set_key(key):
+        print(f"{data['user']}: ", decrypt_message(data["encrypted_message"], key))
+
+    sio.emit("get_key", {"sid": data["sid"]}, callback=set_key)
 
 
 if __name__ == "__main__":
@@ -54,9 +60,7 @@ if __name__ == "__main__":
                 break
 
             encrypted_message = encrypt_message(message, symmetric_key)
-            
-            sio.emit("message", {"user_id": user["user_id"], "encrypted_message": encrypted_message, "user": user["username"],
-                                "key": symmetric_key, "room": chat_id})
+            sio.emit("message", {"encrypted_message": encrypted_message, "user": user["username"], "room": chat_id, "sid": sio.sid })
 
         sio.emit("leave", {"room": chat_id, "username": user["username"]})
 
