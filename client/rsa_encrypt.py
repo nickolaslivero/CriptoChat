@@ -5,68 +5,68 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
 def generate_rsa_keys():
     private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
     public_key = private_key.public_key()
 
     private_key_str = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    ).decode('utf-8')
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8")
 
     public_key_str = public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    ).decode('utf-8')
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode("utf-8")
 
     return private_key_str, public_key_str
 
 
 def rsa_encrypt(string_to_encrypt, public_key_str):
     public_key = serialization.load_pem_public_key(
-        public_key_str.encode('utf-8'),
-        backend=default_backend()
+        public_key_str.encode("utf-8"), backend=default_backend()
     )
-    message = string_to_encrypt if isinstance(string_to_encrypt, (bytes, bytearray)) else string_to_encrypt.encode('utf-8')
+    message = (
+        string_to_encrypt
+        if isinstance(string_to_encrypt, (bytes, bytearray))
+        else string_to_encrypt.encode("utf-8")
+    )
     encrypted = public_key.encrypt(
         message,
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
-            label=None
-        )
+            label=None,
+        ),
     )
     return encrypted
 
 
 def rsa_decrypt(encrypted_string, private_key_str):
     private_key = serialization.load_pem_private_key(
-        private_key_str.encode('utf-8'),
-        password=None,
-        backend=default_backend()
+        private_key_str.encode("utf-8"), password=None, backend=default_backend()
     )
     decrypted = private_key.decrypt(
         encrypted_string,
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
-            label=None
-        )
+            label=None,
+        ),
     )
-    return decrypted if isinstance(decrypted, (bytes, bytearray)) else decrypted.decode('utf-8')
+    return (
+        decrypted
+        if isinstance(decrypted, (bytes, bytearray))
+        else decrypted.decode("utf-8")
+    )
 
 
 if __name__ == "__main__":
-    private_key_str, public_key_str = generate_rsa_keys()
-    text_to_encrypt = "SEBA"
-
-    print(private_key_str, private_key_str)
-
-    encrypted_text = rsa_encrypt(text_to_encrypt, public_key_str)
-    print("Texto criptografado:", encrypted_text)
-
-    decrypted_text = rsa_decrypt(encrypted_text, private_key_str)
-    print("Texto descriptografado:", decrypted_text)
+    keys = []
+    for _ in range(100):
+        aux, _ = generate_rsa_keys()
+        if aux in keys:
+            print("ESTA CHAVE JA EXISTE")
+        else:
+            keys.append(aux)
