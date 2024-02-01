@@ -12,7 +12,13 @@ def get_key(data):
         nonlocal key
         key = value
 
-    socketio.emit("send_key_to_server", { "public_key": data["public_key"] }, include_self=False, callback=set_key)
+    socketio.emit(
+        "send_key_to_server",
+        {"public_key": data["public_key"], "user": data["user"]},
+        include_self=False,
+        to=data["chat_id"],
+        callback=set_key,
+    )
 
     timeout = time.time() + timeout
     while not key and time.time() <= timeout:
