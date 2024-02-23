@@ -14,9 +14,9 @@ def get_key(data):
 
     socketio.emit(
         "send_key_to_server",
-        {"public_key": data["public_key"], "user": data["user"]},
+        {"public_key": data["public_key"], "chat_id": data["chat_id"], "user": data["user"]},
         include_self=False,
-        to=data["chat_id"],
+        to=data["user"]["username"],
         callback=set_key,
     )
 
