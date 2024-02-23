@@ -1,10 +1,11 @@
-from encrypt import generate_3des_key, encrypt_message, decrypt_message
-from rsa_encrypt import generate_rsa_keys, rsa_encrypt, rsa_decrypt
-
 import socketio
 import requests
 import json
 import os
+
+from encrypt import generate_3des_key, encrypt_message, decrypt_message
+from rsa_encrypt import generate_rsa_keys, rsa_encrypt, rsa_decrypt
+
 
 server_url = "http://127.0.0.1:5000"
 headers = {"Content-Type": "application/json"}
@@ -168,7 +169,7 @@ def handle_message(data):
         except:
             print("[INFO] 2. Mensagem criptografa recebida: ", data["message"])
             print("[INFO] 3. Solicitando chave 3des enviando a chave RSA publica")
-        
+
             sio.emit("get_key", {
                     "public_key": session_state.chats[data["chat_id"]]["rsa_keys"][1],
                     "chat_id": data["chat_id"],
