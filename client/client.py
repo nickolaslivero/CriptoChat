@@ -32,10 +32,38 @@ def login(username, password):
     else:
         return None
 
+def register(username, password):
+    response = requests.post(f"{server_url}/register", json={"username": username, "password": password}, headers=headers)
+
+    if response.status_code == 200:
+        print("Usuário registrado com sucesso")
+        user = json.loads(response.content.decode("utf-8"))["user"]
+        return user
+    else:
+        print("Algo deu errado durante o cadastro")
+        return None
+
 def fetch_users():
     response = requests.get(f"{server_url}/user", headers=headers)
     users = json.loads(response.content.decode("utf-8"))
     return users
+
+def fetch_groups():
+    response = requests.post(f"{server_url}/chat/chats", json={"user": session_state.user}, headers=headers)
+
+    if response.status_code == 200:
+        response = json.loads(response.content.decode("utf-8"))
+        return response["chats"]
+    return []
+
+def show_groups(groups):
+    print("-="*15)
+    print("Groups you are in Criptochat")
+    for group in groups:
+        if group["id"]:
+            print(f"\t{group['id']} {group['name']}")
+    print("-="*15) 
+
 
 def show_users(users):
     print("-="*15)
@@ -51,8 +79,9 @@ def select_users():
     users.append(session_state.user["user_id"])
     return users
 
-def get_chat_id(users_id):
-    data = requests.post(f"{server_url}/chat/enter_chat", json={"user_ids": users_id}, headers=headers).content
+def get_chat_id(users_id, chat_name=None):
+    context = {"user_ids": users_id} if not chat_name else {"user_ids": users_id, "name": chat_name}
+    data = requests.post(f"{server_url}/chat/enter_chat", json=context, headers=headers).content
     chat_id = json.loads(data.decode("utf-8"))["chat_id"]
     return chat_id
 
@@ -181,29 +210,50 @@ def handle_message(data):
 while True:
 
     while not session_state.is_logged:
-        username = input("Username: ")
-        password = input("Password: ")
 
-        user = login(username, password)
+        aux =  int(input("Digite 1 para logar ou 2 para se cadastrar: "))
 
-        if user:
-            session_state.user = user
-            session_state.is_logged = True
-            break
+        if aux == 1:
+            username = input("Username: ")
+            password = input("Password: ")
 
-        print("Wrong username or password")
+            user = login(username, password)
+
+            if user:
+                session_state.user = user
+                session_state.is_logged = True
+                break
+
+            print("Wrong username or password")
+        elif aux == 2:
+            username = input("Username: ")
+            password = input("Password: ")
+
+            user = register(username, password)
 
     sio.emit("join", {"room": session_state.user["username"], "username": session_state.user["username"]})
 
     show_users(fetch_users())
+    show_groups(fetch_groups())
 
     while True:
         try:
-            users_id = select_users()
-            chat_id = get_chat_id(users_id)
-            break
-        except:
-            print("digite um valor válido")
+            aux = int(input("""Digite 1 para escolher uma pessoa para iniciar um chat\nDigite 2 para escolher um grupo\nDigite 3 para criar um novo grupo\n"""))
+            if aux == 1:
+                users_id = select_users()
+                chat_id = get_chat_id(users_id)
+                break
+            elif aux == 2:
+                chat_id = input("Digite o id do grupo que deseja entrar: ")
+                break
+            elif aux == 3:
+                print("Selecione o ids dos usuários que deseja criar o grupo")
+                users_id = select_users()
+                name = input("Digite o nome para o grupo")
+                chat_id = get_chat_id(users_id, name)
+                break
+        except Exception as e:
+            print(f"Digite um valor válido [{e}]")
             continue
 
     if chat_id not in session_state.chats:

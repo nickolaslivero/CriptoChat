@@ -24,6 +24,7 @@ class Chat(db.Model):
     __tablename__ = "chat"
 
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20), unique=True, nullable=True)
 
     users = db.relationship('User', secondary=user_chat_association, back_populates='chats')
 
