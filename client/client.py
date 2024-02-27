@@ -2,6 +2,7 @@ import socketio
 import requests
 import json
 import os
+import base64
 
 from encrypt import generate_3des_key, encrypt_message, decrypt_message
 from rsa_encrypt import generate_rsa_keys, rsa_encrypt, rsa_decrypt
@@ -24,24 +25,52 @@ def clear():
     return os.system('cls' if os.name == 'nt' else 'clear')
 
 def login(username, password):
-    response = requests.post(f"{server_url}/login", json={"username": username, "password": password}, headers=headers)
+
+    response = requests.get(f"{server_url}/public_key", headers=headers)
 
     if response.status_code == 200:
-        user = json.loads(response.content.decode("utf-8"))["user"]
-        return user
-    else:
-        return None
+        public_key = json.loads(response.content.decode("utf-8"))["public_key"]
+        
+        username_encrypted = rsa_encrypt(username, public_key)
+        password_encrypted = rsa_encrypt(password, public_key)
+        
+        username_base64 = base64.b64encode(username_encrypted).decode("utf-8")
+        password_base64 = base64.b64encode(password_encrypted).decode("utf-8")
+        
+        data = {"username": username_base64, "password": password_base64}
+        response = requests.post(f"{server_url}/login", json=data, headers=headers)
+
+        if response.status_code == 200:
+            user = json.loads(response.content.decode("utf-8"))["user"]
+            return user
+        else:
+            return None
+    return None
 
 def register(username, password):
-    response = requests.post(f"{server_url}/register", json={"username": username, "password": password}, headers=headers)
+
+    response = requests.get(f"{server_url}/public_key", headers=headers)
 
     if response.status_code == 200:
-        print("Usuário registrado com sucesso")
-        user = json.loads(response.content.decode("utf-8"))["user"]
-        return user
-    else:
-        print("Algo deu errado durante o cadastro")
-        return None
+        public_key = json.loads(response.content.decode("utf-8"))["public_key"]
+        
+        username_encrypted = rsa_encrypt(username, public_key)
+        password_encrypted = rsa_encrypt(password, public_key)
+        
+        username_base64 = base64.b64encode(username_encrypted).decode("utf-8")
+        password_base64 = base64.b64encode(password_encrypted).decode("utf-8")
+        
+        data = {"username": username_base64, "password": password_base64}
+
+        response = requests.post(f"{server_url}/register", json=data, headers=headers)
+
+        if response.status_code == 200:
+            print("Usuário registrado com sucesso")
+            user = json.loads(response.content.decode("utf-8"))["user"]
+            return user
+        else:
+            print("Algo deu errado durante o cadastro")
+            return None
 
 def fetch_users():
     response = requests.get(f"{server_url}/user", headers=headers)
