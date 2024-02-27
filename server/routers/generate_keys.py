@@ -3,6 +3,11 @@ import json
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from base64 import b64encode, b64decode
 
 
 def generate_rsa_keys():
@@ -62,6 +67,13 @@ def rsa_decrypt(encrypted_string, private_key_str):
         if isinstance(decrypted, (bytes, bytearray))
         else decrypted.decode("utf-8")
     )
+
+def decrypt_message(ciphertext, key):
+    cipher = Cipher(algorithms.TripleDES(key), modes.ECB(), backend=default_backend())
+    decryptor = cipher.decryptor()
+    ciphertext_bytes = b64decode(ciphertext)
+    decrypted_message = decryptor.update(ciphertext_bytes) + decryptor.finalize()
+    return decrypted_message.rstrip(b" ").decode("utf-8")
 
 
 if __name__ == "__main__":

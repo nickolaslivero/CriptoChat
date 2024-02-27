@@ -1,21 +1,25 @@
-import os, json, base64
+import os
+import json
+import base64
 
 from flask import Flask, request, jsonify, Blueprint
 
 from models import User
 from app import db
-from .generate_keys import rsa_decrypt
+from .generate_keys import rsa_decrypt, decrypt_message
 
 
 bp = Blueprint("auth", __name__)
 
 
 def decrypt_form_data(encrypted_username, encrypted_password):
+    master_key = os.getenv("MASTER_KEY").encode("utf-8").decode('unicode_escape').encode('latin1')
     current_dir = os.path.dirname(os.path.realpath(__file__))
     keys_file = os.path.join(current_dir, "keys.json")
     with open(keys_file, "r") as file:
         key_data = json.load(file)
         private_key = key_data["private_key"]
+    private_key = decrypt_message(private_key, master_key)
     username = rsa_decrypt(encrypted_username, private_key)
     password = rsa_decrypt(encrypted_password, private_key)
     return username.decode("utf-8"), password.decode("utf-8")
@@ -28,7 +32,7 @@ def register():
 
     username, password = decrypt_form_data(encrypted_username, encrypted_password)
 
-    new_user = User(username=username, password=password)
+    new_user = User(username=username, password=encrypted_password)
     db.session.add(new_user)
     db.session.commit()
     return jsonify({"message": "User registered successfully!", "user": {"user_id": new_user.id, "username": new_user.username}})
@@ -36,6 +40,17 @@ def register():
 
 @bp.route("/login", methods=["POST"])
 def login():
+    def __validate_password(user, login_password):
+        master_key = os.getenv("MASTER_KEY").encode("utf-8").decode('unicode_escape').encode('latin1')
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        keys_file = os.path.join(current_dir, "keys.json")
+        with open(keys_file, "r") as file:
+            key_data = json.load(file)
+            private_key = key_data["private_key"]
+        private_key = decrypt_message(private_key, master_key)
+        user_password = rsa_decrypt(user.password, private_key).decode("utf-8")
+        return user_password == login_password
+
     data = request.get_json()
     encrypted_username = base64.b64decode(data["username"])
     encrypted_password = base64.b64decode(data["password"])
@@ -44,7 +59,7 @@ def login():
 
     user = User.query.filter_by(username=username).first()
 
-    if user and password == user.password:
+    if user and __validate_password(user, password):
         return jsonify({"message": "Access confirmed", "user": {"user_id": user.id, "username": user.username}}), 200
     else:
         return jsonify({"message": "Invalid username or password"}), 401
